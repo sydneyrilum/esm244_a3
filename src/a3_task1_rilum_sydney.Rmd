@@ -1,0 +1,56 @@
+---
+title: "Spatial Data Visualization"
+author: "Sydney Rilum"
+date: "2/19/2021"
+output: 
+  html_document:
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(tidyverse)
+library(here)
+library(sf)
+
+library(spatstat)
+library(maptools) 
+library(sp)
+library(raster)
+library(tmap)
+```
+
+```{r}
+# Read in the oil spill data
+oil_spill <- read_sf(dsn = here("data"), 
+                 layer = "Oil_Spill_Incident_Tracking_%5Bds394%5D") %>% 
+  st_transform(crs = 4326) # Update CRS
+
+# Plot it (exploratory)
+plot(oil_spill)
+
+# Get California counties outline
+ca_county <- read_sf(dsn = here("data"), 
+                    layer = "california_county_shape_file") %>% 
+  dplyr::select(NAME) # Only keep one attribute (name) to simplify
+
+# Set CRS
+st_crs(ca_county) <- 4326 # Set CRS to match 
+
+# plot them together
+ggplot() +
+  geom_sf(data = ca_county, 
+          color = "darkorchid", 
+          fill = "darkorchid4", 
+          size = 1) +
+  geom_sf(data = oil_spill, 
+          color = "orange", 
+          alpha = 0.7, 
+          size = 2) +
+  theme_minimal()
+```
+
+Make an exploratory interactive map in tmap showing the location of oil spill events included in the data. 
+
+
+Make a finalized static chloropleth map in ggplot in which the fill color for each county depends on the count of inland oil spill events by county for the 2008 oil spill data
