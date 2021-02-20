@@ -1,0 +1,21 @@
+---
+title: "Working with Raster Data"
+author: "Sydney Rilum"
+date: "2/19/2021"
+output: 
+  html_document:
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+
+
+
+
+
+**Citation:** [Kaschner, K., Rius-Barile, J., Kesner-Reyes, K., Garilao, C., Kullander, S., Rees, T., & Froese, R. (2016). AquaMaps: Predicted range maps for aquatic species.](https://www.aquamaps.org/)

@@ -54,3 +54,9 @@ Make an exploratory interactive map in tmap showing the location of oil spill ev
 
 
 Make a finalized static chloropleth map in ggplot in which the fill color for each county depends on the count of inland oil spill events by county for the 2008 oil spill data
+
+
+
+**Citation:**
+
+

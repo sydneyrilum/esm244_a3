@@ -1,0 +1,132 @@
+---
+title: "Text Wrangling and Analysis of the Novel *Little Women*"
+author: "Sydney Rilum"
+date: "2/19/2021"
+output: 
+  html_document:
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(here)
+library(tidytext)
+library(textdata)
+library(pdftools)
+library(ggwordcloud)
+```
+
+```{r, cache = TRUE}
+# Read in pdf of "Little Women"
+little_women_text <- pdf_text(here("data", "littlewomen.pdf"))
+
+```
+
+```{r}
+# Convert text into a data frame
+little_women_tidy <- data.frame(little_women_text) %>%
+  mutate(text_full = str_split(little_women_text, pattern = '\\n')) %>%  # break pages up into individual lines
+  unnest(text_full) %>%  # make each line of text into one row
+  mutate(text_full = str_squish(text_full))  # remove excess whitespace
+
+# Organize strings by chapter number
+little_women_df <- little_women_tidy %>% 
+  slice(-(1:101)) %>%  # remove first rows containing preface and table of contents, start at Ch. 1
+  mutate(chapter = case_when(
+    str_detect(text_full, "CHAPTER") ~ text_full,  # detect rows containing the word "Chapter"
+    TRUE ~ NA_character_
+  )) %>% 
+  fill(chapter) %>%  # fill in Chapter # for each row in respective chapter
+  separate(col = chapter, into = c("ch", "no"), sep = " ") %>%  # separate Chapter and # into two columns
+  mutate(no = str_remove(no, pattern = "\\.")) %>%  # remove period after each Chapter#
+  mutate(no = str_replace(no, pattern = "in", replacement = "III")) %>%  # fix error (XVIII was being read in as XVin)
+  mutate(chapter = as.numeric(as.roman(no)))  # convert Ch# to be recognized as roman numerals and numeric class
+
+```
+
+```{r}
+# Tokenization
+little_women_tokens <- little_women_df %>% 
+  unnest_tokens(word, text_full) %>%  # split a column into tokens (words) with one token per row
+  dplyr::select(-little_women_text)  %>%  # remove little women text column
+  anti_join(stop_words)  # remove stop words (e.g. a, of, the, etc.)
+
+# Get word counts by chapter
+little_women_wordcount <- little_women_tokens %>% 
+  count(chapter, word)
+
+##### get rid of page numbers??? from word column
+
+### remove character names? (jo, beth, meg, amy, laurie, mother......)
+
+#### problem with don't splits into do  n't
+```
+
+## Most Frequently Used Words in *Little Women*
+
+```{r}
+# Find the top 5 words from each chapter
+top_5_words <- little_women_wordcount %>% 
+  group_by(chapter) %>% 
+  arrange(-n) %>%  # # arrange counts from largest to smallest
+  slice(1:5)  # keep only top 5 rows
+
+# Make some graphs
+ggplot(data = top_5_words, aes(x = word, y = n)) +
+  geom_col(fill = "blue") +
+  facet_wrap(~chapter, scales = "free") +
+  coord_flip()
+```
+
+```{r}
+# Make a word cloud for Part 1, using the top 100 words
+part1_top100 <- little_women_wordcount %>% 
+  filter(chapter %in% c(1:23)) %>%  # filter for chapters in part 1 only
+  arrange(-n) %>%  # arrange counts from largest to smallest
+  slice(1:100)  # keep top 100 words
+
+part1_cloud <- ggplot(data = part1_top100, aes(label = word)) +
+  geom_text_wordcloud(aes(color = n, size = n), shape = "diamond") +
+  scale_size_area(max_size = 6) +
+  scale_color_gradientn(colors = c("darkgreen","blue","purple")) +
+  theme_minimal()
+
+part1_cloud
+
+
+# Make a word cloud for Part 2, using the top 100 words
+part2_top100 <- little_women_wordcount %>% 
+  filter(chapter %in% c(24:47)) %>%  # filter for chapters in part 2 only
+  arrange(-n) %>%  # arrange counts from largest to smallest
+  slice(1:100)  # keep top 100 words
+
+part2_cloud <- ggplot(data = part2_top100, aes(label = word)) +
+  geom_text_wordcloud(aes(color = n, size = n), shape = "diamond") +
+  scale_size_area(max_size = 6) +
+  scale_color_gradientn(colors = c("darkgreen","blue","purple")) +
+  theme_minimal()
+
+part2_cloud
+```
+
+## Sentiment Analysis
+
+```{r}
+
+```
+
+
+
+
+**Text Data Citation:**
+
+
+
+
+
+
+
+
+
+
