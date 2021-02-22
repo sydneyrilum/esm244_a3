@@ -90,5 +90,3 @@ ggplot(data = spill_counts) +
 
 **Citations:** Oil spill data: [CA DFW Oil Spill Incident Tracking Database System (dataset ds394), 2008.](https://map.dfg.ca.gov/metadata/ds0394.html#ID0EUGA); California county shapefile: ESRI, ESM244
 
-
-

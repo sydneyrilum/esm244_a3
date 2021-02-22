@@ -8,27 +8,27 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 library(tidyverse)
+library(pdftools) # read in pdfs
 library(here)
-library(tidytext)
-library(textdata)
-library(pdftools)
-library(ggwordcloud)
+library(tidytext) # tidy text mining tools
+library(textdata) # tools for manipulating text datasets, includes sentiment lexicons
+library(ggwordcloud) # create wordcloud plots
 ```
 
 ```{r, cache = TRUE}
 # Read in pdf of "Little Women"
 little_women_text <- pdf_text(here("data", "littlewomen.pdf"))
-
 ```
 
 ```{r}
 # Convert text into a data frame
 little_women_tidy <- data.frame(little_women_text) %>%
   mutate(text_full = str_split(little_women_text, pattern = '\\n')) %>%  # break pages up into individual lines
-  unnest(text_full) %>%  # make each line of text into one row
-  mutate(text_full = str_squish(text_full))  # remove excess whitespace
+  unnest(text_full) %>%  # convert each line of text into one row
+  mutate(text_full = str_trim(text_full)) %>%  # remove excess whitespace
+  mutate(text_full = str_squish(text_full))
 
 # Organize strings by chapter number
 little_women_df <- little_women_tidy %>% 
@@ -46,87 +46,99 @@ little_women_df <- little_women_tidy %>%
 ```
 
 ```{r}
-# Tokenization
+# Tokenization - wrangling words/tokens into tidy format
 little_women_tokens <- little_women_df %>% 
   unnest_tokens(word, text_full) %>%  # split a column into tokens (words) with one token per row
   dplyr::select(-little_women_text)  %>%  # remove little women text column
-  anti_join(stop_words)  # remove stop words (e.g. a, of, the, etc.)
+  anti_join(stop_words) %>%  # remove stop words (e.g. a, of, the, etc.)
+  mutate(word = str_squish(word)) %>% 
+  filter(word != "jo") %>%  # remove character names
+  filter(word != "jo's") %>% 
+  filter(word != "beth") %>% 
+  filter(word != "meg") %>% 
+  filter(word != "amy") %>% 
+  filter(word != "amy's") %>% 
+  filter(word != "march") %>% 
+  filter(word != "laurie") %>% 
+  filter(word != "john") %>% 
+  filter(word != "brooke") %>% 
+  filter(word != "hannah") %>% 
+  filter(word != "kate") %>% 
+  filter(word != "demi") %>% 
+  filter(word != "bhaer") %>% 
+  filter(word != "fred") %>% 
+  filter(word != "women") %>% 
+  filter(word != "chapter") %>% 
+  filter(word != "do") %>%  # remove misc. words
+  filter(word != "n't") %>% 
+  filter(word != "11") %>% 
+  filter(word != "ve") %>% 
+  filter(word != "ing")
 
-# Get word counts by chapter
-little_women_wordcount <- little_women_tokens %>% 
-  count(chapter, word)
-
-##### get rid of page numbers??? from word column
-
-### remove character names? (jo, beth, meg, amy, laurie, mother......)
-
-#### problem with don't splits into do  n't
 ```
 
 ## Most Frequently Used Words in *Little Women*
 
 ```{r}
-# Find the top 5 words from each chapter
-top_5_words <- little_women_wordcount %>% 
-  group_by(chapter) %>% 
-  arrange(-n) %>%  # # arrange counts from largest to smallest
-  slice(1:5)  # keep only top 5 rows
+# Get word counts
+little_women_wordcount <- little_women_tokens %>% 
+  count(word)
 
-# Make some graphs
-ggplot(data = top_5_words, aes(x = word, y = n)) +
-  geom_col(fill = "blue") +
-  facet_wrap(~chapter, scales = "free") +
-  coord_flip()
-```
-
-```{r}
-# Make a word cloud for Part 1, using the top 100 words
-part1_top100 <- little_women_wordcount %>% 
-  filter(chapter %in% c(1:23)) %>%  # filter for chapters in part 1 only
+# Make a word cloud using the top 100 words
+top100 <- little_women_wordcount %>% 
   arrange(-n) %>%  # arrange counts from largest to smallest
   slice(1:100)  # keep top 100 words
 
-part1_cloud <- ggplot(data = part1_top100, aes(label = word)) +
+word_cloud <- ggplot(data = top100, aes(label = word)) +
   geom_text_wordcloud(aes(color = n, size = n), shape = "diamond") +
   scale_size_area(max_size = 6) +
-  scale_color_gradientn(colors = c("darkgreen","blue","purple")) +
+  scale_color_gradientn(colors = c("blue","blueviolet","violetred")) +
   theme_minimal()
 
-part1_cloud
-
-
-# Make a word cloud for Part 2, using the top 100 words
-part2_top100 <- little_women_wordcount %>% 
-  filter(chapter %in% c(24:47)) %>%  # filter for chapters in part 2 only
-  arrange(-n) %>%  # arrange counts from largest to smallest
-  slice(1:100)  # keep top 100 words
-
-part2_cloud <- ggplot(data = part2_top100, aes(label = word)) +
-  geom_text_wordcloud(aes(color = n, size = n), shape = "diamond") +
-  scale_size_area(max_size = 6) +
-  scale_color_gradientn(colors = c("darkgreen","blue","purple")) +
-  theme_minimal()
-
-part2_cloud
+word_cloud
 ```
+
+**Figure 1.** Wordcloud containing the most frequently used words in Louisa May Alcott's *Little Women*. Note that character names were removed from word counts.
+
+<br>
 
 ## Sentiment Analysis
 
 ```{r}
+# Get word counts by chapter
+little_women_wordcount_ch <- little_women_tokens %>% 
+  count(chapter, word)
+
+# Bind words in `little_women_wordcount` to the `afinn` lexicon
+little_women_afinn <- little_women_wordcount_ch %>% 
+  inner_join(get_sentiments("afinn"))
+
+# Find the mean AFINN score by chapter: 
+afinn_means <- little_women_afinn %>% 
+  group_by(chapter) %>% 
+  summarize(mean_afinn = mean(value)) %>% 
+  mutate(pos = mean_afinn >= 0) # create a new column that indicates + or - value
+
+# Graph positivity and negativity of chapters
+ggplot(data = afinn_means, 
+       aes(x = fct_rev(as.factor(chapter)), 
+           y = mean_afinn,
+           fill = pos)) +
+  geom_col(position = "identity") +
+  scale_fill_manual(values = c("indianred", "cornflowerblue")) +
+  coord_flip() +
+  theme_minimal() +
+  labs(x = "Chapter",
+       y = "Mean AFINN score",
+       title = "Little Women Sentiment Analysis") +
+  theme(legend.position = "none")
 
 ```
 
+**Figure 2.** A bar graph displaying mean AFINN scores for the words in each chapter of *Little Women*, according to the AFINN sentiment lexicon classifications. The AFINN lexicon ranks words from -5 (very negative sentiment) to +5 (very positive sentiment). Blue bars indicate chapters containing words with positive mean sentiments scores and red bars indicate chapters containing words with negative mean sentiments.
 
+<br>
 
+**Text Citation:** [Alcott, Louisa M. *Little Women: or Meg, Jo, Beth, and Amy.* Little, Brown, and Company, 1916.](https://archive.org/details/littlewomen00alcoiala/page/n7/mode/2up)
 
-**Text Data Citation:**
-
-
-
-
-
-
-
-
-
-
+**Sentiment Citation:** [Finn Årup Nielsen A new ANEW: Evaluation of a word list for sentiment analysis in microblogs. Proceedings of the ESWC2011 Workshop on 'Making Sense of Microposts': Big things come in small packages 718 in CEUR Workshop Proceedings 93-98. 2011 May.](http://arxiv.org/abs/1103.2903.)
