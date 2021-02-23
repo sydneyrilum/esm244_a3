@@ -1,5 +1,5 @@
 ---
-title: "Text Wrangling and Analysis of the Novel *Little Women*"
+title: "Text Mining and Analysis of the Novel *Little Women*"
 author: "Sydney Rilum"
 date: "2/19/2021"
 output: 
@@ -42,7 +42,6 @@ little_women_df <- little_women_tidy %>%
   mutate(no = str_remove(no, pattern = "\\.")) %>%  # remove period after each Chapter#
   mutate(no = str_replace(no, pattern = "in", replacement = "III")) %>%  # fix error (XVIII was being read in as XVin)
   mutate(chapter = as.numeric(as.roman(no)))  # convert Ch# to be recognized as roman numerals and numeric class
-
 ```
 
 ```{r}
@@ -74,10 +73,9 @@ little_women_tokens <- little_women_df %>%
   filter(word != "11") %>% 
   filter(word != "ve") %>% 
   filter(word != "ing")
-
 ```
 
-## Most Frequently Used Words in *Little Women*
+### Most Frequently Used Words in *Little Women*
 
 ```{r}
 # Get word counts
@@ -98,11 +96,11 @@ word_cloud <- ggplot(data = top100, aes(label = word)) +
 word_cloud
 ```
 
-**Figure 1.** Wordcloud containing the most frequently used words in Louisa May Alcott's *Little Women*. Note that character names were removed from word counts.
+**Figure 1.** Wordcloud containing the top 100 most frequently used words in Louisa May Alcott's *Little Women*. Character names and stop words, such as "is", "of", "the", and "and", were removed from word counts to allow for more interesting word assortment. (Data: Alcott 1916).
 
 <br>
 
-## Sentiment Analysis
+### Sentiment Analysis of *Little Women*
 
 ```{r}
 # Get word counts by chapter
@@ -126,19 +124,22 @@ ggplot(data = afinn_means,
            fill = pos)) +
   geom_col(position = "identity") +
   scale_fill_manual(values = c("indianred", "cornflowerblue")) +
+  scale_x_discrete(breaks = c(5, 10, 15, 20, 25, 30, 35, 40, 45)) +
+  scale_y_continuous(limits = c(-0.5, 1.2)) +
   coord_flip() +
-  theme_minimal() +
+  theme_light() +
   labs(x = "Chapter",
-       y = "Mean AFINN score",
-       title = "Little Women Sentiment Analysis") +
+       y = "Mean AFINN sentiment score",
+       title = "Little Women - Sentiment Analysis by Chapter") +
   theme(legend.position = "none")
-
 ```
 
-**Figure 2.** A bar graph displaying mean AFINN scores for the words in each chapter of *Little Women*, according to the AFINN sentiment lexicon classifications. The AFINN lexicon ranks words from -5 (very negative sentiment) to +5 (very positive sentiment). Blue bars indicate chapters containing words with positive mean sentiments scores and red bars indicate chapters containing words with negative mean sentiments.
+**Figure 2.** Column graph displaying mean AFINN scores for the words in Parts 1 and 2 (Chapters 1-47) of *Little Women*, using the AFINN lexicon. The AFINN lexicon ranks words from -5 (very negative sentiment) to +5 (very positive sentiment). Blue bars indicate chapters containing more words (on average) with positive mean sentiments, while red bars indicate chapters containing more words (on average) with negative mean sentiments. (Data: Alcott 1916, Nielson 2011).
 
 <br>
 
-**Text Citation:** [Alcott, Louisa M. *Little Women: or Meg, Jo, Beth, and Amy.* Little, Brown, and Company, 1916.](https://archive.org/details/littlewomen00alcoiala/page/n7/mode/2up)
+#### Citations:
 
-**Sentiment Citation:** [Finn Årup Nielsen A new ANEW: Evaluation of a word list for sentiment analysis in microblogs. Proceedings of the ESWC2011 Workshop on 'Making Sense of Microposts': Big things come in small packages 718 in CEUR Workshop Proceedings 93-98. 2011 May.](http://arxiv.org/abs/1103.2903.)
+Text Data: [Alcott, Louisa M. *Little Women: or Meg, Jo, Beth, and Amy.* Little, Brown, and Company, 1916.](https://archive.org/details/littlewomen00alcoiala/page/n7/mode/2up)
+
+Sentiment Lexicon: [Finn Årup Nielsen A new ANEW: Evaluation of a word list for sentiment analysis in microblogs. Proceedings of the ESWC2011 Workshop on 'Making Sense of Microposts': Big things come in small packages 718 in CEUR Workshop Proceedings 93-98. 2011 May.](http://arxiv.org/abs/1103.2903.)
